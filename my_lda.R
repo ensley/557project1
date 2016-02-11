@@ -69,11 +69,4 @@ mylda <- function(data, resp.idx = 1) {
 }
 
 data <- data[-which(is.na(data$nuclei)),-1] # leave ID column out and remove NAs
-mylda(data, 10)
-# about 95% correct classification
-
-# compare to result from MASS library
-library(MASS)
-q <- lda(class ~ ., data = data, prior = prior, subset = train)
-qp <- predict(q, newdata = data.test.df)
-table(qp$class == data.test.df$class)/sum(table(qp$class == data.test.df$class))
+mylda(data, 10) # about 95% correct classification
