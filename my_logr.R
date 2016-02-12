@@ -5,33 +5,64 @@ data$class <- as.factor(data$class)
 levels(data$class) <- c('benign','malignant')
 data <- data[-which(is.na(data$nuclei)),-1] # leave ID column out and remove NAs
 
-train <- sample(1:683, 342)
-data.train <- data[train, ]
-data.test <- data[-train, ]
-
-y <- as.numeric(data.train[ ,10]) - 1
-X <- cbind(rep(1, length(y)), as.matrix(data.train[ ,-10]))
-beta0 <- rep(0, 10)
-
-maxit <- 100
-betas <- matrix(0, nrow = maxit, ncol = 10)
-continue <- T
-iters <- 1
-tol <- 1e-5
-
-
-while(continue && iters < maxit) {
-  beta <- betas[iters, ]
-  p <- exp(X %*% beta)/(1 + exp(X %*% beta))
-  W <- diag(as.vector(p * (1-p)))
-  z <- X %*% beta + solve(W) %*% (y-p)
-  betas[iters + 1, ] <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z
-  if(all(abs(betas[iters + 1, ] - betas[iters, ])/abs(betas[iters, ]) < tol)) {
-    continue = F
+mylogr <- function(y, x, maxit = 100, tol = 1e-5) {
+  y <- as.numeric(y) - 1
+  X <- as.matrix(cbind(1, x))      # add the intercept term to the predictors
+  
+  # constants
+  N <- length(y)        # number of observations
+  p <- ncol(X)          # number of predictors
+  continue <- T
+  i <- 1
+  
+  betas <- matrix(0, nrow = maxit, ncol = p)
+  
+  while(continue && i < maxit) {
+    beta <- betas[i, ]
+    p <- exp(X %*% beta)/(1 + exp(X %*% beta))
+    W <- diag(as.vector(p * (1-p)))
+    z <- X %*% beta + solve(W) %*% (y - p)
+    betas[i+1, ] <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z
+    if(all(abs(betas[i + 1, ] - betas[i, ])/abs(betas[i, ]) < tol)) {
+      continue = F
+    }
+    i <- i + 1
   }
-  iters = iters + 1
+  
+  return(betas[i, ])
+  
 }
 
-beta <- betas[iters, ]
+mylogr.cv <- function(y, x, k, maxit = 100, tol = 1e-5) {
+  
+  cvs <- rep(0, k)
+  
+  # constants
+  N <- length(y)        # number of observations
+  
+  # assign indices for which group each observation belongs to
+  kappa <- sample(rep(1:k, length = N))
+  
+  for(i in 1:k) {
+    y.tr <- y[kappa != i]     # training responses; all but ith group
+    x.tr <- x[kappa != i, ]   # training predictors; all but ith group
+    y.va <- y[kappa == i]     # validation responses; ith group
+    x.va <- x[kappa == i, ]   # validation predictors; ith group
+    
+    beta <- mylogr(y.tr, x.tr, maxit, tol)
+    
+    X.va <- as.matrix(cbind(1, x.va))
+    
+    prediction <- rep(NA, length(y.va))
+    for(j in 1:length(prediction)) {
+      prediction[j] <- round(1/(1+exp(-t(beta) %*% X.va[j, ])))
+    }
+    cvs[i] <- sum((prediction - (as.numeric(y.va)-1))^2)
+  }
+  
+  return(sum(cvs)/N)
+  
+}
 
-glm(class ~ ., data = data, family = binomial, subset = train)
+system.time(cv.err.logr <- mylogr.cv(data$class, data[ ,-10], 10))
+

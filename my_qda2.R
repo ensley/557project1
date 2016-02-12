@@ -78,23 +78,28 @@ myqda.cv <- function(y, x, k) {
   K <- length(classes)        # number of different classes
   p <- ncol(x)                # number of predictors
   
+  # assign indices for which group each observation belongs to
   kappa <- sample(rep(1:k, length = N))
   
+  # leave one different group out of each fit
   for(i in 1:k) {
-    y.tr <- y[kappa != i]
-    x.tr <- x[kappa != i, ]
-    y.va <- y[kappa == i]
-    x.va <- x[kappa == i, ]
+    y.tr <- y[kappa != i]     # training responses; all but ith group
+    x.tr <- x[kappa != i, ]   # training predictors; all but ith group
+    y.va <- y[kappa == i]     # validation responses; ith group
+    x.va <- x[kappa == i, ]   # validation predictors; ith group
+    # fit the QDA model to the training data
     m <- myqda(y.tr, x.tr)
     prediction <- rep(NA, length(y.va))
     for(j in 1:length(prediction)) {
+      # predict the jth response using the fitted model and the validation predictors
       prediction[j] <- m$G(as.numeric(x.va[j, ]), m$means, m$sigma, m$prior)
     }
+    # store squared error for this fit
     cvs[i] <- sum((prediction - as.numeric(y.va))^2)
   }
-  
+  # calculate mean squared prediction error
   return(sum(cvs)/N)
 }
 
 system.time(cv.err.qda <- myqda.cv(data$class, data[ ,-10], 10))
-
+# looks like LDA does better than QDA (~0.3 vs ~0.4)
