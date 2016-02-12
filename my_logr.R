@@ -12,14 +12,26 @@ data.test <- data[-train, ]
 y <- as.numeric(data.train[ ,10]) - 1
 X <- cbind(rep(1, length(y)), as.matrix(data.train[ ,-10]))
 beta0 <- rep(0, 10)
-beta <- beta0
 
-for(i in 1:7) {
-  cat(i, '\n')
+maxit <- 100
+betas <- matrix(0, nrow = maxit, ncol = 10)
+continue <- T
+iters <- 1
+tol <- 1e-5
+
+
+while(continue && iters < maxit) {
+  beta <- betas[iters, ]
   p <- exp(X %*% beta)/(1 + exp(X %*% beta))
   W <- diag(as.vector(p * (1-p)))
   z <- X %*% beta + solve(W) %*% (y-p)
-  beta <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z
+  betas[iters + 1, ] <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z
+  if(all(abs(betas[iters + 1, ] - betas[iters, ])/abs(betas[iters, ]) < tol)) {
+    continue = F
+  }
+  iters = iters + 1
 }
 
-glm(y ~ X[ ,-1], family = binomial)$coefficients
+beta <- betas[iters, ]
+
+glm(class ~ ., data = data, family = binomial, subset = train)
