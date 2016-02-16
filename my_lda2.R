@@ -6,7 +6,7 @@ levels(data$class) <- c('benign','malignant')
 data <- data[-which(is.na(data$nuclei)),-1] # leave ID column out and remove NAs
 
 mylda <- function(y, x) {
-
+  
   # constants
   N <- length(y)              # number of observations
   Nk <- as.vector(table(y))   # number of observations belonging to each class
@@ -64,8 +64,6 @@ mylda <- function(y, x) {
               x=x,
               y=y))
 }
-
-m <- mylda(data$class, data[ ,-10]) # about 95% correct classification
 
 
 mylda.cv <- function(y, x, k) {
