@@ -24,7 +24,7 @@ mylogr <- function(y, x, maxit = 100, tol = 1e-5) {
     z <- X %*% beta + solve(W) %*% (y - p)
     betas[i+1, ] <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z
     if(all(abs(betas[i + 1, ] - betas[i, ])/abs(betas[i, ]) < tol)) {
-      continue = F
+      continue <- F
     }
     i <- i + 1
   }
